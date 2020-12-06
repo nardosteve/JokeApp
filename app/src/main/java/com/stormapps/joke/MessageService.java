@@ -2,6 +2,10 @@
 package com.stormapps.joke;
 
 import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.Intent;
 import android.content.Context;
 import android.util.Log;
@@ -10,65 +14,65 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
-/**
- * An {@link IntentService} subclass for handling asynchronous task requests in
- * a service on a separate handler thread.
- * <p>
- * <p>
- * TODO: Customize class - update intent actions, extra parameters and static
- * helper methods.
- */
 public class MessageService extends IntentService {
-
+    //USE A CONSTANT TO PASS A A MESSAGE FROM THE MAIN ACTTIVITY TO THE SERVICE
     public static final String EXTRA_MESSAGE = "MESSAGE";
-    private Handler handler;
-
+    /*Declare a private NOTIFICATION_ID which will be used to identify a notification.
+    * If we send another notification with the same ID, it will replace
+    the current notification.
+    * This is useful if you want to update an existing notification with new information.
+    **/
+    public static final int NOTIFICATION_ID = 1;
     public MessageService() {
         super("MessageService");
+//required constructor
     }
-
-    @Override
-    public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
-        handler = new Handler();
-        return super.onStartCommand(intent, flags, startId);
-    }
-
     @Override
     protected void onHandleIntent(Intent intent) {
-
-        // this method will contains the code we want to run when the service receives anintent
+//this method contains the code you want to run when the service receives an intent
         synchronized (this) {
-            // synchronized() method is Java code which allows us to lock a particular
-            //block of code from access by other threads
             try {
-                //wait for 10 seconds t
+//wait for 10 seconds
                 wait(10000);
             } catch (InterruptedException error) {
                 error.printStackTrace();
             }
-            //try..catch is Java syntax which allows us to perform code actions on the try
-            //block , and catch error exceptions in the the catch block , hence making us able to trace
-            //the line of code which has errors during debugging
         }
-        //get the text from the intent
+//get the text from the intent
         String text = intent.getStringExtra(EXTRA_MESSAGE);
-        //call showText method
+//call showText method
         showText(text);
-
     }
-
     private void showText(final String text) {
-        Log.v("DelayedMessageService", "What is the secret of comedy?:" + text);
-        // the above line of code logs a piece of text so that we can see it in the logcat
+        Log.v("DelayedMessageService", "What is the secret of comedy?? " + text);
+        Intent intent = new Intent(this, MainActivity.class);
 
-        //post the Toast code to the main thread using the handler post method
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(),text,Toast.LENGTH_SHORT).show();
-            }
-        });
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addParentStack(MainActivity.class);
+        stackBuilder.addNextIntent(intent);
+
+        PendingIntent pendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Notification notification = new Notification.Builder(this)
+
+                .setSmallIcon(R.mipmap.ic_joke_round)
+                //set the title as your application name
+                .setContentTitle(getString(R.string.app_name))
+                //set the content text
+                .setContentText(text)
+                //make the notification disappear when clicked
+                .setAutoCancel(true)
+                //give it a maximum priority to allow peeking
+                .setPriority(Notification.PRIORITY_MAX)
+                //set it to vibrate to get a large heads-up notification
+                .setDefaults(Notification.DEFAULT_VIBRATE)
+                //open main activity on clicking the notification
+                .setContentIntent(pendingIntent)
+                .build();
+
+        //display the notification using the Android notification service
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        //Issue the notification
+        notificationManager.notify(NOTIFICATION_ID, notification);
     }
-
-    
 }
